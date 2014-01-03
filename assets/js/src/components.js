@@ -43,36 +43,95 @@ Crafty.c('Vertical', {
         return this;
     }
 });
+Crafty.c('ComputerVertical', {
+    init: function () {
+      this.min_y = Game.map_grid.tile.height;
+      this.max_y = (Game.map_grid.tile.height * Game.map_grid.height) - Game.map_grid.tile.height;
+      this.bind('EnterFrame', function() {
+        var ball = Crafty('Ball');
+        if (ball.dX < 0 && ball.at().x < (Game.map_grid.width / 2)) {
+          if (this.y > ball.y) {
+            // Move up
+            if (this.y > this.min_y) {
+              this.y -= 3;
+            }
+          } else {
+            // Move Down
+            if (this.y + this.h < this.max_y) {
+              this.y += 3;
+            }
+          }
+        }
+      });
+    },
+});
 
 Crafty.c('Paddle', {
   init: function() {
-    this.requires('Actor, Color, Vertical, Collision')
+    this.requires('Actor, Color')
       .color('blue')
-      .vertical(4)
-      .stopOnSolids()
       .attr({h: Game.map_grid.tile.height * 4});
   },
 
-  // Registers a stop-movement function to be called when
-  //  this entity hits an entity with the "Solid" component
+});
+
+Crafty.c('HumanPaddle', {
+  init: function() {
+    this.requires('Paddle, Vertical, Collision')
+      .vertical(4)
+      .stopOnSolids()
+  },
+
   stopOnSolids: function() {
     this.onHit('Solid', this.stopMovement);
     return this;
   },
 
-  // Stops the movement
   stopMovement: function() {
     this._speed = 0;
     if (this._movement) {
       this.y -= this._movement.y;
     }
   },
+
+});
+Crafty.c('ComputerPaddle', {
+  init: function() {
+    this.requires('Paddle, ComputerVertical');
+  },
 });
 
 Crafty.c('Ball', {
   init: function() {
-    this.requires('Actor, Color')
-      .color('white');
+    this.requires('Actor, Color, Collision, DOM')
+      .color('white')
+      .attr({dX: 2, dY: 3})
+      .bind('EnterFrame', function() {
+        var at = this.at();
+
+        // Computer gets point
+        if (at.x > Game.map_grid.width) {
+            this.at(8, 8);
+        }
+
+
+        // User gets point
+        if (at.x < 0) {
+            this.at(8, 8);
+        }
+
+        this.x += this.dX;
+        this.y += this.dY;
+      })
+      .onHit('Paddle', function () {
+        this.dX *= -1;
+      })
+      .onHit('BorderTall', function () {
+        this.dX *= -1;
+      })
+      .onHit('BorderWide', function () {
+        this.dY *= -1;
+      });
   },
 });
 
