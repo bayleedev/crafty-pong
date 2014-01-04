@@ -1,0 +1,1 @@
+var Object = { extend: function(obj) { return Crafty.extend.call(this, obj); }};
