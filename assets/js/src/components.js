@@ -12,10 +12,9 @@ Crafty.c('Grid', {
   at: function(x, y) {
     if (x === undefined && y === undefined) {
       return { x: this.x/Game.map_grid.tile.width, y: this.y/Game.map_grid.tile.height }
-    } else {
-      this.attr({ x: x * Game.map_grid.tile.width, y: y * Game.map_grid.tile.height });
-      return this;
     }
+    this.attr({ x: x * Game.map_grid.tile.width, y: y * Game.map_grid.tile.height });
+    return this;
   }
 });
 
@@ -53,12 +52,12 @@ Crafty.c('ComputerVertical', {
           if (this.y > ball.y) {
             // Move up
             if (this.y > this.min_y) {
-              this.y -= 3;
+              this.y -= Game.computer_speed();
             }
           } else {
             // Move Down
             if (this.y + this.h < this.max_y) {
-              this.y += 3;
+              this.y += Game.computer_speed();
             }
           }
         }
@@ -92,6 +91,7 @@ Crafty.c('HumanPaddle', {
     if (this._movement) {
       this.y -= this._movement.y;
     }
+    return this;
   },
 
 });
@@ -105,19 +105,23 @@ Crafty.c('Ball', {
   init: function() {
     this.requires('Actor, Color, Collision, DOM')
       .color('white')
-      .attr({dX: 2, dY: 3})
+      .attr({
+        dX: Crafty.math.randomInt.apply(null, Game.ball_speed()),
+        dY: Crafty.math.randomInt.apply(null, Game.ball_speed())
+      })
       .bind('EnterFrame', function() {
         var at = this.at();
 
         // Computer gets point
         if (at.x > Game.map_grid.width) {
-            this.at(8, 8);
+          Crafty.trigger(this.computer_point);
+          this.at(2, 8);
         }
-
 
         // User gets point
         if (at.x < 0) {
-            this.at(8, 8);
+          Crafty.trigger(this.human_point);
+          this.at(Game.map_grid.width - 2, 8);
         }
 
         this.x += this.dX;
@@ -152,4 +156,63 @@ Crafty.c('BorderWide', {
     this.requires('Border')
       .attr({w: Game.map_grid.tile.width * Game.map_grid.width});
   }
+});
+Crafty.c('Score', {
+  init: function() {
+    this.points = 0;
+    this.requires('DOM, 2D, Text, Grid')
+      .text('0 Points')
+      .attr({w: 300});
+  },
+  respondTo: function(name) {
+    var that = this;
+    Crafty.bind(name, function() {
+      that.text((++that.points) + ' Points');
+    });
+    return this;
+  }
+});
+
+Crafty.c('DifficultyTextBlock', {
+  init: function() {
+    this.requires('BorderWide, Mouse')
+      .color('Transparent')
+  },
+  setup: function(e) {
+    this.e = e;
+    this.attr({
+      x: e.x,
+      y: e.y - 5,
+      h: e.h + 10,
+      w: e.w
+    })
+    .bind('Click', this.click);
+  },
+  click: function() {
+    Game.difficulty(this.e.difficulty);
+    Crafty.scene('Game');
+  }
+});
+
+Crafty.c('title', {
+  init: function() {
+    this.requires('DOM, 2D, Text, Grid')
+      .textFont({ size: '25px' })
+      .css({ 'text-align': 'center' })
+      .attr({
+        w: Game.width(),
+      });
+  }
+});
+
+Crafty.c('DifficultyText', {
+  init: function() {
+    this.requires('title')
+      .textFont({ size: '20px' })
+  },
+  difficulty: function(difficulty) {
+    this.difficulty = difficulty;
+    Crafty.e('DifficultyTextBlock').setup(this);
+    return this;
+  },
 });
