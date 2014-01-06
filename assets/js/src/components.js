@@ -216,3 +216,28 @@ Crafty.c('DifficultyText', {
     return this;
   },
 });
+
+/**
+ * Model helps bind data to multiple components.
+ *
+ * @example
+ * ~~~
+ * dave = Crafty.e('Model');
+ * dave.bind('change:name', function(name) { console.log('Daves new name', name); });
+ * bob = Crafty.e('Model');
+ * bob.bind('change:name', function(name) { console.log('Bobs new name', name); });
+ *
+ * dave.attr({name: 'David'}); // => Daves new name David
+ * bob.attr('name', 'Robert'); // => Bobs new name Robert
+ * ~~~
+ */
+Crafty.c('Model', {
+  init: function() {
+    this.bind('Change', this._changed);
+  },
+  _changed: function(changes) {
+    for (key in changes) {
+      this.trigger('change:' + key, changes[key]);
+    }
+  },
+});
