@@ -241,3 +241,146 @@ Crafty.c('Model', {
     }
   },
 });
+
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+
+Crafty.c('Data', {
+  init: function() {
+    this.defaults = this.defaults || {};
+    this.attributes = this.extend.call(this.attributes || {}, this.defaults);
+  },
+
+  /**
+   * Sets up the data in the object without triggering events.
+   */
+  setup: function(data) {
+    this.set.apply(this, data, {silent: true});
+    return this;
+  },
+
+  /**
+   * Generic getter/setter delegator.
+   *
+   * @example
+   * ~~~
+   * person.data('name', 'blainesch');
+   * person.data('name'); // #-> 'blainesch'
+   * ~~~
+   */
+  data: function() {
+    if (arguments.length === 1 && typeof arguments[0] === 'string') {
+      return this.get.apply(this, arguments);
+    }
+    return this.set.apply(this, arguments);
+  },
+
+  /**
+   * Getter method.
+   *
+   * @example
+   * ~~~
+   * person.get('name'); // #-> 'blainesch'
+   * ~~~
+   */
+  get: function(key) {
+    return this.data[key];
+  },
+
+  /**
+   * Main setter function for data attributes.
+   *
+   * @example
+   * ~~~
+   * person.set('name', 'blainesch', {silent: true});
+   * person.set('name', 'blainesch');
+   * person.set({name: 'blainesch'}, {silent: true});
+   * person.set({name: 'blainesch'});
+   * ~~~
+   */
+  set: function() {
+    length = arguments.length;
+    if (length === 3 || (length === 2 && typeof arguments[0] === 'string')) {
+      data = {};
+      data[arguments[0]] = arguments[1];
+      options = arguments[2] || {};
+    } else {
+      data = arguments[0] || {};
+      options = arguments[1] || {};
+    }
+    this.extend.call(this.attributes, data);
+    this.trigger('data_change', data);
+    return this;
+  },
+});
+
+/**
+ * Helps determine when data or the component is "dirty" or has changed attributes.
+ *
+ * @example
+ * ~~~
+ * person = Crafty.e('DirtyData').setup({name: 'blainesch', age: 24});
+ * person.is_dirty(); // #-> false
+ * person.is_dirty('name'); // #-> false
+ *
+ * person.set('name', 'Blaine');
+ * person.is_dirty(); // #-> true
+ * person.is_dirty('name'); // #-> true
+ * person.is_dirty('age'); // #-> false
+ * person.changed; // #-> ['name']
+ * ~~~
+ */
+Crafty.c('DirtyData', {
+  init: function() {
+    this.original = this.attributes;
+    this.changed = this.changed || [];
+    this.requires('Data').bind('data_change', this._changed);
+  },
+  is_dirty: function(key) {
+    if (arguments.length === 0) {
+      return !!this.changed.length;
+    }
+    return this.changed.indexOf(key) > -1;
+  },
+  _changed: function(changes) {
+    this.changed.push.apply(this.changed, Object.keys(changes));
+    for (key in changes) {
+      this.trigger('change:' + key, changes[key]);
+    }
+  },
+});
+
+/**
+ * Allows binding to specific data changes.
+ *
+ * @example
+ * ~~~
+ * person = Crafty.e('DataEvents').setup({name: 'blainesch', age: 24});
+ * person.bind('change:name', function(value) {
+ *   console.log('updated name to', value);
+ * });
+ * person.set('name', 'Blaine'); // #-> 'updated name to Blaine'
+ * ~~~
+ */
+Crafty.c('DataEvents', {
+  init: function() {
+    this.requires('Data').bind('data_change', this._changed);
+  },
+  _changed: function(changes) {
+    for (key in changes) {
+      this.trigger('change:' + key, changes[key]);
+    }
+  },
+});
+Crafty.c('Model', {
+  init: function() {
+    this.requires('Data, DirtyData, DataEvents');
+  },
+});
+
+Crafty.c('Person', {
+  defaults: {name: 'John Doe', age: 0},
+  init: function() {
+    this.requires('Model');
+  },
+});
